@@ -1,0 +1,48 @@
+nombre:  readTxtxs
+variables:  location, begin
+funcion:    lee archivos de texto que tienen tablas tabulares pero con un encabezado de texto linear
+comentarios:    utiliza readlines() porque de esta manera se genera una lista de las lineas. Esto hace que luego sea facil acceder a valores puntuales de cada linea.
+output: regresa las lineas de la tabla tabular, el encabezado lo quita
+
+nombre: getPatterns
+variables:  lines, pattern
+funcion: saca un patron de una linea
+comentarios: especialmente util cuando el patron se encuentra dentro de una columna junto con otros valores, como el caso del bNumber en 'RegulonDB_geneidentifiers.txt'
+output: regresa una lista con el patron que buscabas en cada linea, sino encuentra en cierta linea asigna ''. Los patrones se regresan en el mismo orden en el que estan las lineas.
+
+nombre: makeDF
+variables:  lines, header_status(opcional, default=None)
+funcion: convierte la lista de lineas (lines) a un string de todo el texto
+comentarios: primero se unen todas las lineas y luego se pasa a un dataframe. Tiene una opcion (headerStatus) para considerar un encabezado al crear el df.
+output: regresa el df, que es la tabla tabular que habia en el archivo de entra. Sin texto informativo de encabezado y como objeto dataframe
+
+nombre: subsPatternToDF
+variables:  df, subs, c_receptor
+funcion: sustituye una columna (c_receptor) con muchos valore por uno de interes (subs)
+comentarios: especialmente util para sustituir la columna gene synonyms por los bNumbers
+output: regresa el dataframe con la substitucion
+
+nombre: getInterest
+variables:  df, list_search, c_to_search
+funcion:    toma cada item de una lista y los busca en una columna de un DataFrame para regresar el valor que hay en otra columna de esa misma fila. Ej, buscas 'aldo' en la columna 3 de un df, lo encuentra en la fila 73 y regresa 'Garcia' que se encuentra el columna 2, fila 73.
+comentarios:    la funcion verifica que si exista match, sino no lo hay regresa 'unkwown' en esa posicion. Es necesario pasarle el numero de la columna en el que se va a buscar, mejorable.
+output: una lista con los valores que se queria saber o 'unkwown' segun sea el caso
+
+nombre: getTFsPathway
+variables:  initial_geneID
+funcion:    transforma de un tipo de ID de gen a factor de transcripcion
+comentarios:    esta funcion llama a getInterest para hacer las conversiones
+output: regresa un df con el tipo de ID de gen, gen, y factor de transcripcion
+
+nombre: getFraction
+variables:  l, counts, case
+funcion:    calcula la fraccion de una subvia controlada por un mismo TF. Toma al TF mas ocurrente para sacar la fraccion.
+comentarios: case sirve para indicar si utiliza el primer o segundo mas ocurrente; sirve para evitar tomar muchos 'unkwown' en cuenta
+output: no regresa nada, opera sobre variables globales 'fractions' y 'tf_most_ocurred'
+
+nombre: callerFraction
+variables:  current_path
+funcion:    prepara todo lo que va a necesitar getFraction. Saca la lista de apariciones de items unicos, longitud de la via y el caso del que se trata. Al final de la funcion asigna a 'type_subpath' la longitu de la subvia en cuestion.
+comentarios: hay dos casos. Se asigna 0 a case cuando se quiere usar el TF/item mas recurrente; esto sucede cuando no hay 'unkwown's en la subvia o cuando solo hay 'unkwown's. Se asigna 1 en case cuando se quiere usar el segundo TF/item mas ocurrente; esto sucede cuando 'unkwown' es el mas recurrente pero hay un segundo lugar.
+output: no regresa nada, opera sobre una variable global 'type_subpath'
+
