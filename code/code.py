@@ -43,7 +43,7 @@ def subsPatternToDF(df, subs, c_receptor):
 lines_gene_IDs = readTxts('data/RegulonDB_geneidentifiers.txt', 16)
 b_numbers = getPatterns(lines_gene_IDs, r'b\d{4}')
 df_gene_IDs = makeDF(lines_gene_IDs)
-df_gene_IDs = subsPatternToDF(lines_gene_IDs, b_numbers, 5)
+df_gene_IDs = subsPatternToDF(df_gene_IDs, b_numbers, 5)
 
 # hacer el dataframe para el archivo RegulonDB_NetworkTFGene.txt
 lines_TF_gene = readTxts('data/RegulonDB_NetworkTFGene.txt', 37)
@@ -78,7 +78,6 @@ def getTFsPathway(initial_geneIDs):
     return(output_df)
 
 bN_gene_TF = getTFsPathway(bNumbers_pathway)
-print(bN_gene_TF)
     
 fractions = []
 type_subpath = []
@@ -115,8 +114,12 @@ def getSubpathways():
             subpath = TFs[initial_pos:final_pos]
             callerFraction(subpath, len_sub)
             final_pos+=1
+    # crear el dataframe de salida
+    output = pd.DataFrame({'subpath': type_subpath, 'fraction': fractions, 'TF': tf_most_ocurred})   
+    return(output)
 
-
-# crear un data frame que contenga el tipo de subvia (longitud), la fraccion de la subvia gobernada por un solo TF y el TF en cuestion
-subpath_fractions_tf = pd.DataFrame({'subpath': type_subpath, 'fraction': fractions, 'TF': tf_most_ocurred})          
+subpath_fractions_tf = getSubpathways()
+# imprimir el output del codigo
+print('Lista de subvias, con su fraccion y el factor de transcripcion que mas regula:')
 print(subpath_fractions_tf)
+print('\nEl factor de transcripcion mas representado: '+subpath_fractions_tf.iloc[0,2])
