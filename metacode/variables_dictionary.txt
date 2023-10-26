@@ -79,3 +79,4 @@ len_sub:    longitud de la subvia con la que se este trabajando
 initial_pos:    posicion de la via en la que se debe de empezar a "cortar" para hacer la subvia. Depende del for, es una iteracion.
 final_pos:  posicion de la via en la que se debe de dejar de "cortar" para hacer la subvia. Depende de la [len_sub] y en cada iteracion del for se le suma 1.
 when_stop: posicion de la via en la que se debe dejar de iterar el for (no inclusivo, por eso se le suma 1). Importante para evitar posiciones de [TFs] que no existen.
+output: dataframe de salida {subpath_fractions_tf}
