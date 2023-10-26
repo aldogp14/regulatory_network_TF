@@ -1,0 +1,81 @@
+GLOBALES
+
+>Independientes:
+pathway:    df con reaccion y su bnumber, lectura de [pathway_gns_test.txt]     
+bNumbers_pathway:   bnumbers de cada reaccion de la via (pathway)
+fractions:  lista vacia donde se alojaran las fracciones de cada subvia   
+type_subpath:   lista vacia donde se metera el numero de elementos de la subvia en cuestion
+tf_most_ocurred:    lista vacia donde se metera el TF mas ocurrente en cada subvia
+
+>Provenientes de funcion
+lines_gene_IDs:  lineas de la tabla [RegulonDB_geneidentifiers.txt]  {readTxts}
+b_numbers:  lista de bnumbers   getPatterns
+df_gene_IDs:    df con el contenido de la tabla tabular [lines_gene_IDs] modificada  {makeDF, subsPatternToDF}
+lines_TF_gene:  lineas de la tabla [RegulonDb_NetworkTFGene.txt]    {readTxts}
+df_TF_gene: df con el contenido de la tabla tabular [lines_TF_gene] {makeDF}
+bN_gene_TF: df con bnumbers, gen y factor de transcripcion  {getTFsPathway}
+subpath_fractions_tf:   df con subvia, fraccion y TF mas ocurrente  {getSubpathways}
+
+
+LOCALES
+
+>readTxts:
+location:   recibe direccion donde se encuentra el archivo a leer
+begin:  recibe el indice de linea a partir de donde empieza la tabla tabular
+output: {lines_gene_IDs, lines_TF_gene}
+
+>getPatterns:
+lines:  recibe las lineas de tabla tabular [lines_gene_IDs, lines_TF_gene]
+pattern:    recibe la expresion regular a buscar en cada linea
+patterns:   lista que aloja los patrones recuperados de cada linea {b_numbers}
+match:  resultado de la busqueda del patron en cada linea (True/False)
+extraction: guarda la extraccion del patron de cada linea, o '' en su caso.
+
+>makeDF:
+lines:  recibe las lineas de tabla tabular [lines_gene_IDs, lines_TF_gene]
+header_status:  es opcional, default=None. En su caso, recibe 0 que indica que se tome en cuenta la primera linea de la tabla para el encabezado del df
+table: guarda la conversion de [lines] a un string
+df: dataframe de la tabla tabular {df_gene_IDs, df_TF_gene}
+
+>subsPatternToDF:
+df: recibe el dataframe al que se le haran sustituciones [df_gene_IDs]
+subs:   recibe la lista con la que susituira [b_numbers]
+c_receptor: recibe el indice de  la columna que sera sustituida
+
+>getInterest:
+df: recibe el dataframe en el que buscara y extraera el TF/gen de interes [df_gene_IDs, df_TF_gene]
+list_search:   recibe la lista de elementos a buscar en cada linea [initial_geneID, genes]
+c_to_search:    recibe el indice de la columna en la que se va a buscar
+c_to_subs:  es opcional, default=1. Podria recibir un indice de una columna en la que se quiera sustituir
+item:   depende del for, cada elemento de [list_search]
+match:  lista con un True en la posicion en la que coincida la busqueda
+index_in_df:    indice en el que esta la coincidencia
+output_list: lista de valores asociados a los valores de entrada {genes, TFs}
+
+>getTFsPathway:
+initial_geneIDs: recibe identificadores de genes de cada reaccion de la via [bNumbers_pathway]
+genes:  genes de asocidados a cada bnumber, resultado de getInterest
+TFs: factores de transcripcion asociados a [genes], resultado de getInterest
+output_df: dataframe con [initial_geneIDs], [genes] y [TFs] {bN_gene_TF}
+
+>getFraction:
+l:  recibe la longitud de la subvia en la que se este operando [len_current_path]
+counts: recibe lista de cuantas veces ocurre cada TF/item unico en la subvia [counts]
+case:   recibe 0 o 1, dependiendo del caso del que se trate. Revisar functions_dictionary.txt -> getFraction -> comentarios
+most_ocurrence: guarda cuantas veces ocurre el TF/item mas ocurrente
+
+>callerFraction:
+current_path:   recibe la subvia con la que se este trabajando [subpath]
+len_sub:    recibe la longitud de la subvia [len_sub]
+counts: lista de cuantas veces ocurre cada TF/item unico en la subvia
+len_current_path:   longitud de la subvia con la que se esta operando
+case: guarda 0 o 1, dependiendo del caso con el que se este trabajando. Revisar functions_dictionary.txt -> getFraction -> comentarios
+
+>getSubpathways:
+no recibe variables como entrada
+TFs: lista de factores de transcripcion de la via entera [bN_gene_TF['TF']]
+len_path:   longitud de la via entera
+len_sub:    longitud de la subvia con la que se este trabajando
+initial_pos:    posicion de la via en la que se debe de empezar a "cortar" para hacer la subvia. Depende del for, es una iteracion.
+final_pos:  posicion de la via en la que se debe de dejar de "cortar" para hacer la subvia. Depende de la [len_sub] y en cada iteracion del for se le suma 1.
+when_stop: posicion de la via en la que se debe dejar de iterar el for (no inclusivo, por eso se le suma 1). Importante para evitar posiciones de [TFs] que no existen.
