@@ -6,6 +6,9 @@ bNumbers_pathway:   bnumbers de cada reaccion de la via (pathway)
 fractions:  lista vacia donde se alojaran las fracciones de cada subvia   
 type_subpath:   lista vacia donde se metera el numero de elementos de la subvia en cuestion
 tf_most_ocurred:    lista vacia donde se metera el TF mas ocurrente en cada subvia
+final_output_1: guarda {subpath_tf_fraction} como string para quitar los indices de python 
+final_output_2_1:   toma el FT mas representado de la via entera
+final_output_2_2:   tiene la fracccion del FT mas rep. como porcentaje y redondeado a dos decimales
 
 >Provenientes de funcion
 lines_gene_IDs:  lineas de la tabla [RegulonDB_geneidentifiers.txt]  {readTxts}
@@ -14,7 +17,7 @@ df_gene_IDs:    df con el contenido de la tabla tabular [lines_gene_IDs] modific
 lines_TF_gene:  lineas de la tabla [RegulonDb_NetworkTFGene.txt]    {readTxts}
 df_TF_gene: df con el contenido de la tabla tabular [lines_TF_gene] {makeDF}
 bN_gene_TF: df con bnumbers, gen y factor de transcripcion  {getTFsPathway}
-subpath_fractions_tf:   df con subvia, fraccion y TF mas ocurrente  {getSubpathways}
+subpath_tf_fraction:   df con subvia, TF mas ocurrente y fracccion {getSubpathways}
 
 
 LOCALES
@@ -79,4 +82,4 @@ len_sub:    longitud de la subvia con la que se este trabajando
 initial_pos:    posicion de la via en la que se debe de empezar a "cortar" para hacer la subvia. Depende del for, es una iteracion.
 final_pos:  posicion de la via en la que se debe de dejar de "cortar" para hacer la subvia. Depende de la [len_sub] y en cada iteracion del for se le suma 1.
 when_stop: posicion de la via en la que se debe dejar de iterar el for (no inclusivo, por eso se le suma 1). Importante para evitar posiciones de [TFs] que no existen.
-output: dataframe de salida {subpath_fractions_tf}
+output: dataframe de salida {subpath_tf_fraction}
