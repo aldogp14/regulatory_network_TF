@@ -115,11 +115,15 @@ def getSubpathways():
             callerFraction(subpath, len_sub)
             final_pos+=1
     # crear el dataframe de salida
-    output = pd.DataFrame({'subpath': type_subpath, 'fraction': fractions, 'TF': tf_most_ocurred})   
-    return(output)
+    output = pd.DataFrame({'subpath': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions})   
+    return(output)  
+subpath_tf_fraction = getSubpathways()
 
-subpath_fractions_tf = getSubpathways()
-# imprimir el output del codigo
-print('Lista de subvias, con su fraccion y el factor de transcripcion que mas regula:')
-print(subpath_fractions_tf)
-print('\nEl factor de transcripcion mas representado: '+subpath_fractions_tf.iloc[0,2])
+# dar formato a las variables a imprimir para el output final
+final_ouput_1 =subpath_tf_fraction.to_string(index=False) # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
+final_ouput_2_1 =subpath_tf_fraction.iloc[0,1] # tomar el FT mas representado de la via entera
+final_ouput_2_2 = round(subpath_tf_fraction.iloc[0,2]*100, 2) # redondear a dos decimales y pasarlo a porcentaje la fraccion del FT mas represenatado
+
+# imprimir el output del script
+print(f'Lista de subvias con el factor de transcripcion que mas la regula y la fraccion de la (sub)via regulada por este mismo:\n{final_ouput_1}')
+print(F'\nEl factor de transcripcion mas representado de la via es \'{final_ouput_2_1}\' con un {final_ouput_2_2}%') 
