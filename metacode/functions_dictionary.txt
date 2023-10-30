@@ -1,6 +1,6 @@
 nombre:  readTxtxs
-variables:  location, begin
-funcion:    lee archivos de texto que tienen tablas tabulares pero con un encabezado de texto linear
+variables:  location
+funcion:    lee archivos de texto que tienen tablas tabulares pero con un encabezado de texto linear, quita lineas que inicien con '#'.
 comentarios:    utiliza readlines() porque de esta manera se genera una lista de las lineas. Esto hace que luego sea facil acceder a valores puntuales de cada linea.
 output: regresa las lineas de la tabla tabular, el encabezado lo quita
 
