@@ -2,6 +2,7 @@
 import pandas as pd 
 from io import StringIO
 import re
+from operator import *
 
 # funcion para leer arhivos de texto tabulares con texto de encabezado
 def readTxts(location, begin):
@@ -82,12 +83,15 @@ bN_gene_TF = getTFsPathway(bNumbers_pathway)
 fractions = []
 type_subpath = []
 tf_most_ocurred = []
+occurrences = []
+unknowns = []
 
 # funcion que calcula la fraccion de una subvia controlada por un mismo TF, el mas ocurrente
 def getFraction(l, counts, case):
     most_ocurrence = counts[case]
     fractions.append(most_ocurrence/l)
     tf_most_ocurred.append(counts.index[case])
+    occurrences.append(most_ocurrence)
 
 # funcion que prepara todo lo que necesita getFraction para despues llamarla
 def callerFraction(current_path, len_sub):
@@ -97,6 +101,9 @@ def callerFraction(current_path, len_sub):
     len_current_path = len(current_path)
     # preguntar de que caso se trata, por lo general no queremos que se tomen en cuenta los 'unkwown's.
     case = 0 if counts.idxmax() != 'unknown' or len(counts) == 1 else 1
+    # sacar el numero de 'unknown's por cada subvia
+    uk = countOf(current_path, 'unknown') if countOf(current_path, 'unknown') > 0 else 0
+    unknowns.append(uk)
     getFraction(len_current_path, counts, case)
     type_subpath.append(len_sub)
 
@@ -115,14 +122,15 @@ def getSubpathways():
             callerFraction(subpath, len_sub)
             final_pos+=1
     # crear el dataframe de salida
-    output = pd.DataFrame({'subpath': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions})   
-    return(output)  
-subpath_tf_fraction = getSubpathways()
+    output = pd.DataFrame({'subpath': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns})   
+    return(output)
+  
+final_df = getSubpathways()
 
 # dar formato a las variables a imprimir para el output final
-final_ouput_1 =subpath_tf_fraction.to_string(index=False) # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
-final_ouput_2_1 =subpath_tf_fraction.iloc[0,1] # tomar el FT mas representado de la via entera
-final_ouput_2_2 = round(subpath_tf_fraction.iloc[0,2]*100, 2) # redondear a dos decimales y pasarlo a porcentaje la fraccion del FT mas represenatado
+final_ouput_1 =final_df.to_string(index=False) # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
+final_ouput_2_1 =final_df.iloc[0,1] # tomar el FT mas representado de la via entera
+final_ouput_2_2 = round(final_df.iloc[0,2]*100, 2) # redondear a dos decimales y pasarlo a porcentaje la fraccion del FT mas represenatado
 
 # imprimir el output del script
 print(f'Lista de subvias con el factor de transcripcion que mas la regula y la fraccion de la (sub)via regulada por este mismo:\n{final_ouput_1}')
