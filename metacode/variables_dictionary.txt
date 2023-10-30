@@ -6,6 +6,9 @@ bNumbers_pathway:   bnumbers de cada reaccion de la via (pathway)
 fractions:  lista vacia donde se alojaran las fracciones de cada subvia   
 type_subpath:   lista vacia donde se metera el numero de elementos de la subvia en cuestion
 tf_most_ocurred:    lista vacia donde se metera el TF mas ocurrente en cada subvia
+occurrences:    lista vacia donde se metera el numero de veces que ocurre el TF mas ocurrente
+unknowns:   lista vacia donde se metera cuantos 'unknown's hay por cada subvia
+
 final_output_1: guarda {subpath_tf_fraction} como string para quitar los indices de python 
 final_output_2_1:   toma el FT mas representado de la via entera
 final_output_2_2:   tiene la fracccion del FT mas rep. como porcentaje y redondeado a dos decimales
@@ -66,6 +69,7 @@ l:  recibe la longitud de la subvia en la que se este operando [len_current_path
 counts: recibe lista de cuantas veces ocurre cada TF/item unico en la subvia [counts]
 case:   recibe 0 o 1, dependiendo del caso del que se trate. Revisar functions_dictionary.txt -> getFraction -> comentarios
 most_ocurrence: guarda cuantas veces ocurre el TF/item mas ocurrente
+occurrences:    numero de veces que ocurre el TF mas ocurrente de la subvia
 
 >callerFraction:
 current_path:   recibe la subvia con la que se este trabajando [subpath]
@@ -73,6 +77,8 @@ len_sub:    recibe la longitud de la subvia [len_sub]
 counts: lista de cuantas veces ocurre cada TF/item unico en la subvia
 len_current_path:   longitud de la subvia con la que se esta operando
 case: guarda 0 o 1, dependiendo del caso con el que se este trabajando. Revisar functions_dictionary.txt -> getFraction -> comentarios
+uk: numero de veces que ocurre un 'unknown' en la subvia actual
+unknowns:   lista con cuantos 'unknown's hay por cada subvia
 
 >getSubpathways:
 no recibe variables como entrada
