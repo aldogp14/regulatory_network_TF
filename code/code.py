@@ -5,11 +5,11 @@ import re
 from operator import *
 
 # funcion para leer arhivos de texto tabulares con texto de encabezado
-def readTxts(location, begin):
+def readTxts(location):
     with open(location , 'r') as f:
         # leer por lineas para poder operarlo como lista de lineas
-        # begin tiene el numero de linea en donde ya empieza la tabla
-        output = f.readlines()[begin:]
+        output = f.readlines()
+        output = [l for l in output if not l.startswith('#')]
         return(output)
     
 
@@ -41,13 +41,13 @@ def subsPatternToDF(df, subs, c_receptor):
     return(df)
 
 # hacer el dataframe para el archivo RegulonDB_geneidentifiers.txt
-lines_gene_IDs = readTxts('data/RegulonDB_geneidentifiers.txt', 16)
+lines_gene_IDs = readTxts('data/RegulonDB_geneidentifiers.txt')
 b_numbers = getPatterns(lines_gene_IDs, r'b\d{4}')
 df_gene_IDs = makeDF(lines_gene_IDs)
 df_gene_IDs = subsPatternToDF(df_gene_IDs, b_numbers, 5)
 
 # hacer el dataframe para el archivo RegulonDB_NetworkTFGene.txt
-lines_TF_gene = readTxts('data/RegulonDB_NetworkTFGene.txt', 37)
+lines_TF_gene = readTxts('data/RegulonDB_NetworkTFGene.txt')
 df_TF_gene = makeDF(lines_TF_gene, 0)
 
 # leer el archivo de la via y guardar, en otra variable, sus bnumbers asociados
