@@ -27,7 +27,6 @@ LOCALES
 
 >readTxts:
 location:   recibe direccion donde se encuentra el archivo a leer
-begin:  recibe el indice de linea a partir de donde empieza la tabla tabular
 output: {lines_gene_IDs, lines_TF_gene}
 
 >getPatterns:
