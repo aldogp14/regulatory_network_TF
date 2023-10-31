@@ -3,12 +3,12 @@ GLOBALES
 >Independientes:
 pathway:    df con reaccion y su bnumber, lectura de [pathway_gns_test.txt]     
 bNumbers_pathway:   bnumbers de cada reaccion de la via (pathway)
+bN_gene_TF: df con bnumbers, gen y factor de transcripcion: [bNumbers_pathway], [genes] y [TFs]
 fractions:  lista vacia donde se alojaran las fracciones de cada subvia   
 type_subpath:   lista vacia donde se metera el numero de elementos de la subvia en cuestion
 tf_most_ocurred:    lista vacia donde se metera el TF mas ocurrente en cada subvia
 occurrences:    lista vacia donde se metera el numero de veces que ocurre el TF mas ocurrente
 unknowns:   lista vacia donde se metera cuantos 'unknown's hay por cada subvia
-
 final_output_1: guarda {subpath_tf_fraction} como string para quitar los indices de python 
 final_output_2_1:   toma el FT mas representado de la via entera
 final_output_2_2:   tiene la fracccion del FT mas rep. como porcentaje y redondeado a dos decimales
@@ -19,7 +19,8 @@ b_numbers:  lista de bnumbers   getPatterns
 df_gene_IDs:    df con el contenido de la tabla tabular [lines_gene_IDs] modificada  {makeDF, subsPatternToDF}
 lines_TF_gene:  lineas de la tabla [RegulonDb_NetworkTFGene.txt]    {readTxts}
 df_TF_gene: df con el contenido de la tabla tabular [lines_TF_gene] {makeDF}
-bN_gene_TF: df con bnumbers, gen y factor de transcripcion  {getTFsPathway}
+genes:  genes de asocidados a [bNumbers_pathway]    {getInterestGenes}
+TFs:    factores de transcripcion asociados a [genes]  {getInterestTFs}
 subpath_tf_fraction:   df con subvia, TF mas ocurrente y fracccion {getSubpathways}
 
 
@@ -47,21 +48,26 @@ df: recibe el dataframe al que se le haran sustituciones [df_gene_IDs]
 subs:   recibe la lista con la que susituira [b_numbers]
 c_receptor: recibe el indice de  la columna que sera sustituida
 
->getInterest:
-df: recibe el dataframe en el que buscara y extraera el TF/gen de interes [df_gene_IDs, df_TF_gene]
-list_search:   recibe la lista de elementos a buscar en cada linea [initial_geneID, genes]
-c_to_search:    recibe el indice de la columna en la que se va a buscar
-c_to_subs:  es opcional, default=1. Podria recibir un indice de una columna en la que se quiera sustituir
+>getInterestGenes:
+df: recibe el dataframe en el que buscara y extraera el gen de interes/asociados [df_gene_IDs]
+list_search:   recibe la lista de elementos a buscar en cada linea [bNumbers_pathway]
+c_to_search:    es opcional, default=5. Podria recibir el indice de la columna en la que se va a buscar
+c_to_subs:  es opcional, default=1. Podria recibir el indice de la columna en la que se quiera sustituir
 item:   depende del for, cada elemento de [list_search]
-match:  lista con un True en la posicion en la que coincida la busqueda
-index_in_df:    indice en el que esta la coincidencia
-output_list: lista de valores asociados a los valores de entrada {genes, TFs}
+match:  indice con la posicion en la que coincida la busqueda
+output_list: lista de genes asociados a los bnumbers {genes}
 
->getTFsPathway:
-initial_geneIDs: recibe identificadores de genes de cada reaccion de la via [bNumbers_pathway]
-genes:  genes de asocidados a cada bnumber, resultado de getInterest
-TFs: factores de transcripcion asociados a [genes], resultado de getInterest
-output_df: dataframe con [initial_geneIDs], [genes] y [TFs] {bN_gene_TF}
+>getInterestTFs:
+df: recibe el dataframe en el que buscara y extraera los TFs de interes/asociados [df_TF_gene]
+list_search:   recibe la lista de elementos a buscar en cada linea [genes]
+c_to_search:    es opcional, default=4. Podria recibir el indice de la columna en la que se va a buscar
+c_to_subs:  es opcional, default=1. Podria recibir el indice de la columna en la que se quiera sustituir
+item:   depende del for, cada elemento de [list_search]
+match:  lista vacia que guarda los indices con las posiciones en las que haya un match, sino hay entonces se queda vacia la lista
+index:  representa el indice de la coincidencia, depende del for de list comprehension
+item_col_to_search: representa cada gen de la columna en donde se va a buscar, depende del for de list comprehension. Necesario para luego compararlo con [item]
+temp_list:  guarda los FTs asociados al gen actual/current. Se puede pensar a [temp_list] como las listas interiores de [output_list].
+output_list: lista de listas con los TFs asociados a cada gen {TFs}
 
 >getFraction:
 l:  recibe la longitud de la subvia en la que se este operando [len_current_path]

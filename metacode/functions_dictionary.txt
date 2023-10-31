@@ -22,17 +22,17 @@ funcion: sustituye una columna (c_receptor) con muchos valore por uno de interes
 comentarios: especialmente util para sustituir la columna gene synonyms por los bNumbers
 output: regresa el dataframe con la substitucion
 
-nombre: getInterest
-variables:  df, list_search, c_to_search
-funcion:    toma cada item de una lista y los busca en una columna de un DataFrame para regresar el valor que hay en otra columna de esa misma fila. Ej, buscas 'aldo' en la columna 3 de un df, lo encuentra en la fila 73 y regresa 'Garcia' que se encuentra el columna 2, fila 73.
-comentarios:    la funcion verifica que si exista match, sino no lo hay regresa 'unkwown' en esa posicion. Es necesario pasarle el numero de la columna en el que se va a buscar, mejorable.
-output: una lista con los valores que se queria saber o 'unkwown' segun sea el caso
+nombre: getInterestGenes
+variables:  df, list_search, c_to_search=5, c_to_subs=1
+funcion:    toma la lista de bnumbers de la via y extrae su correspondiente gen (bnumber >> gen)
+comentarios:    la funcion verifica que si exista match, sino no lo hay regresa 'unknown' en esa posicion. 
+output: una lista ccon el nombre del gen asociado a ese bnumber
 
-nombre: getTFsPathway
-variables:  initial_geneID
-funcion:    transforma de un tipo de ID de gen a factor de transcripcion
-comentarios:    esta funcion llama a getInterest para hacer las conversiones
-output: regresa un df con el tipo de ID de gen, gen, y factor de transcripcion
+nombre: getInterestGenes
+variables:  df, list_search, c_to_search=4, c_to_subs=1
+funcion:    toma la lista de genes de la via y extrae los correspondientes TFs (gen >> TFs)
+comentarios:    la funcion verifica que si exista match, sino no lo hay regresa 'unknown' en esa posicion. 
+output: una lista ccon el nombre de los TFs asociados a ese gen
 
 nombre: getFraction
 variables:  l, counts, case
