@@ -9,6 +9,7 @@ def readTxts(location):
     with open(location , 'r') as f:
         # leer por lineas para poder operarlo como lista de lineas
         output = f.readlines()
+        # distingue las lineas del encabezado porque empiezan con '#' y las omite
         output = [l for l in output if not l.startswith('#')]
         return(output)
     
@@ -71,7 +72,7 @@ def getInterest(df, list_search, c_to_search, c_to_subs=1):
         else: output_list.append('unknown')
     return(output_list)
 
-# funcion que transforma de bNumber a TF
+# funcion llama a getInterest para hacer un dataframe con bnumbers, gen y FT
 def getTFsPathway(initial_geneIDs):
     genes = getInterest(df_gene_IDs, initial_geneIDs, 5) # la columna 5 contiene los bNumbers
     TFs = getInterest(df_TF_gene, genes, 4) # la columna 4 contiene el nombre de los genes
