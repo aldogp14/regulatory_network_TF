@@ -3,6 +3,7 @@ import pandas as pd
 from io import StringIO
 import re
 from operator import *
+from itertools import chain
 
 # funcion para leer arhivos de texto tabulares con texto de encabezado
 def readTxts(location):
@@ -52,7 +53,7 @@ lines_TF_gene = readTxts('data/RegulonDB_NetworkTFGene.txt')
 df_TF_gene = makeDF(lines_TF_gene, 0)
 
 # leer el archivo de la via y guardar, en otra variable, sus bnumbers asociados
-pathway = pd.read_csv('test/test.txt', delimiter='\t', header=None)
+pathway = pd.read_csv('data/pathway_gns_test.txt', delimiter='\t', header=None)
 bNumbers_pathway = pathway.iloc[:,1]
 
 # funcion que toma la lista de bnumbers de la via y extrae su correspondiente gen (bnumber >> gen)
@@ -81,9 +82,10 @@ def getInterestTFs(df, list_search, c_to_search=4, c_to_subs=1): # la columna 4 
             # el for sirve para recorrer los indices guardados en 'match' 
             for i in match:
                 # guardar en una lista temporal los FTs por cada gen
-                temp_list.append(df.iloc[i, c_to_subs])
+                if not df.iloc[i, c_to_subs] in temp_list: # saegurarse de no repetir un TF para cada gen
+                    temp_list.append(df.iloc[i, c_to_subs])
             output_list.append(temp_list)
-        else: output_list.append('unknown')
+        else: output_list.append(['unknown'])
     # al final se regresa una lista de listas, en la que las listas interiores contienen los FTs asociados a cada gen
     return(output_list)
 
@@ -98,26 +100,49 @@ type_subpath = []
 tf_most_ocurred = []
 occurrences = []
 unknowns = []
+other_TFs = []
 
 # funcion que calcula la fraccion de una subvia controlada por un mismo TF, el mas ocurrente
-def getFraction(l, counts, case):
+def getFraction(l, counts, case, uk, current_path):
     most_ocurrence = counts[case]
     fractions.append(most_ocurrence/l)
-    tf_most_ocurred.append(counts.index[case])
+    # guardar todos los factores de transcripcion mas representados de la via, para los casos en los que no solo es uno
+    current_path = current_path.tolist()
+    if counts.tolist().count(most_ocurrence) != 1:
+        # evitar guardar el mismo factor dos veces
+        temp = list(set([item for item in current_path if current_path.count(item) == most_ocurrence and item != 'unknown']))
+        # si solo se encontro un FT hay que evitar guardarlo como lista
+        if len(temp) == 1: tf_most_ocurred.append(temp[0])
+        else: tf_most_ocurred.append(temp)
+    else: 
+        tf_most_ocurred.append(counts.index[case])
     occurrences.append(most_ocurrence)
+    # contar cuantos otros factores de transcripcion regulan la subvia pero no fueron los mas recurrentes
+    # si es 'unknown' el mas recurrente, entonces no hay otros factores
+    if tf_most_ocurred[-1] == 'unknown': other_TFs.append(0)
+    # si se apendeo un solo FT y no una lista de FTs entonces puede que si haya otros FTs
+    elif tf_most_ocurred[-1] == str: other_TFs.append(l - most_ocurrence - uk)
+    # si todos los factores de la subvia tambien son los mas recurrentes entonces no quedan mas TFs
+    elif all(item in current_path for item in tf_most_ocurred[-1]): other_TFs.append(0)
+    # si no se cumplio nada de lo anterior entonces tambien puede ser que queden algunos FTs
+    else: other_TFs.append(l - most_ocurrence - uk)
 
 # funcion que prepara todo lo que necesita getFraction para despues llamarla
 def callerFraction(current_path, len_sub):
+    # tenemos una lista de lista, hay que 'aplanarla'. El metodo chain hace esto, despues hay que pasarlo a tipo de dato pd.Series
+    current_path_flat = pd.Series(list(chain(*current_path)))
     # .value_counts() saca, de una lista, cuantas veces ocurre cada item unico
-    counts = current_path.value_counts()
+    counts = current_path_flat.value_counts()
     # sacar la longitud de la via 
     len_current_path = len(current_path)
     # preguntar de que caso se trata, por lo general no queremos que se tomen en cuenta los 'unkwown's.
+    # en este caso estamos viendo sobre 'counts' que esta aplanado, por eso 'unknown' no va entre parentesis
     case = 0 if counts.idxmax() != 'unknown' or len(counts) == 1 else 1
     # sacar el numero de 'unknown's por cada subvia
-    uk = countOf(current_path, 'unknown') if countOf(current_path, 'unknown') > 0 else 0
+    # en este caso estamos viendo sobre la lista de listas 'curren_path', por eso hay que preguntar sobre ['unknown']
+    uk = countOf(current_path, ['unknown']) if countOf(current_path, ['unknown']) else 0
     unknowns.append(uk)
-    getFraction(len_current_path, counts, case)
+    getFraction(len_current_path, counts, case, uk, current_path_flat)
     type_subpath.append(len_sub)
 
 # funcion que hace la particion de la via en subvias y pregunta si sus FTs son el mismo
@@ -135,7 +160,7 @@ def getSubpathways():
             callerFraction(subpath, len_sub)
             final_pos+=1
     # crear el dataframe de salida
-    output = pd.DataFrame({'subpath': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns})   
+    output = pd.DataFrame({'subpath': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns, 'other TFs': other_TFs})   
     return(output)
   
 final_df = getSubpathways()
