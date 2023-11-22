@@ -1,7 +1,6 @@
-import pandas as pd
-l = ['r1', 'r2', 'r3', 'r4', 'r2', 'r2']
+l = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
 
-print(type(l[-1]))
+m = ['aldo', 'mateo', 'andres', 'lot', 'victor', 'brenda', 'rogelio', 'diana']
+m.sort()
 
-if type(l) == list: print(1)
-if type(l[-1]) == str: print(0)
+print(m)
