@@ -32,18 +32,27 @@ def getTypePath(current_p):
     ends = []
     if max(pd.Series(current_p).value_counts()) == 2 and min(pd.Series(current_p).value_counts()) == 2: 
         return('cycle', ends, begins)
-    # sino fue un ciclo simple entonces hay que discernir si es 'lineal' o empieza como ciclo y luego como linea
+    # sino fue un ciclo simple entonces hay que discernir si es 'lineal' o empieza como ciclo y luego como linea    
+    # sacar las rxns que sean inicios y finales de la via
+    # son aquellas que aparecen una vez o que siempre aparecen en posiciones iniciales(pares) o siempre en posiciones finales (impares)
     counts = pd.Series(current_p).value_counts()
+    # obtener las rxns que aparecen una vez
     uniques = counts[counts==1].index
+    # discernir si son inicios o finales
     for item_s in uniques:
         begins.extend(index for index, item in enumerate(current_p) if item_s == item and index%2 == 0)
         ends.extend(index for index, item in enumerate(current_p) if item_s == item and index%2 == 1)
     
+    # obtener rxns que aparecen mas de una vez
     not_uniques = [item for item in current_p if current_p.count(item)>1]
+    # ir recorriendo las rxns que aparecen mas de una vez
     for item_s in list(set(not_uniques)):
         c_begin = 0
         c_end = 0
+        # obtener los indices de donde aparece la rxn en cuestion
         indexes = [index for index, item in enumerate(current_p) if item_s == item]
+        # el siguiente for sirve para asegurar que todos los indices que corresponden a una rxn sean solo inicios o solo finales
+        # en caso de que asi lo fuera entonces se agregan dichos indices como posiciones de inicios
         for index in indexes:
             if index%2 == 1 and c_begin == 0: c_end += 1
             elif index%2 ==0 and c_end == 0: c_begin += 1
