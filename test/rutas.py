@@ -5,12 +5,10 @@ lines_pathway_rxns = t.readTxts('test/test.txt')
 df_pathway_rxns = t.makeDF(lines_pathway_rxns, 0)
 print(df_pathway_rxns)
 
-row = 0
-
-list_all_pathways = []
-pathway_names = [df_pathway_rxns.iloc[0,0]]
-
 def getListPathways():
+    row = 0
+    pathway_names = [df_pathway_rxns.iloc[0,0]]
+    list_all_pathways = []
     p_memory = []
     # el for sirve para recorrer las filas de 'df_pathways_rxns', va otorgando los indices
     for row in range(df_pathway_rxns.shape[0]):
@@ -112,66 +110,44 @@ all_paths_all_routes = []
 routes_path = []
 
 for current_p in list_all_pathways:
-    # obtener inicios y finales
-    begins, ends = getBeginsEnds(current_p)
-    # obtener las rxns donde hay ramificaciones
-    branches, branch_rxns = getBranches(current_p)
-    # agregar a la via los pares de rxns donde hay ramificaciones duplicadas e invertidas
-    current_p.extend(branches)
+    discriminator = 0
+    if max(pd.Series(current_p).value_counts()) == 2 and min(pd.Series(current_p).value_counts()) == 2:
+        discriminator = 1
+        for rxn in list(set(current_p)):
+            disc = [index%2 for index,item in enumerate(current_p) if item == rxn]
+            if sum(disc)!=1 or len(disc)!=2: discriminator = 0
+    if discriminator:
+        path = [current_p[0], current_p[1]]
+        k = 1
+        indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 0 and index != begin+1 and not index in avoid and not current_p[index+1] in path]
+        for i in indexes:
+            # ver que nuestro indice no sea el ultimo
+            if i+1 < len(current_p):
+                path.append(current_p[i+1])
+                # guardar el indice que se acaba de usar para despues no tomarlo en cuenta
+                used_index = i+1
+                k+=1
+                # guardar los indices que corresponden a la siguiente reaccion. Estos tienen que ser pares porque sino serian sucesoras y no predecesoras
+                indexes.extend(index for index, item in enumerate(current_p) if path[k] == item and index != used_index and index%2==0 and item != path[0])
+        routes_path.append(path)                 
+    else:
+        # obtener inicios y finales
+        begins, ends = getBeginsEnds(current_p)
+        # obtener las rxns donde hay ramificaciones
+        branches, branch_rxns = getBranches(current_p)
+        # agregar a la via los pares de rxns donde hay ramificaciones duplicadas e invertidas
+        current_p.extend(branches)
 
-    for begin in begins:
-        avoid = []
-        while begin != None:
-            direction = 'down'
-            avoid_temp = []
-            n_branches_route = 0
-            # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
-            path = [current_p[begin], current_p[begin+1]]
-            k = 1
-            indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 0 and index != begin+1 and not index in avoid and not current_p[index+1] in path]
-            dif = len(indexes)
-            if indexes:
-                for index in indexes:
-                    k += 1
-                    if dif == 1:
-                        if direction == 'down': used_index = index+1
-                        else: used_index = index-1
-                        path.append(current_p[used_index])
-                        dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif)
-
-                    elif dif > 1:
-                        n_branches_route += 1
-                        avoid.insert(0, index)
-                        avoid_temp.append(index)
-
-                        if direction == 'down': used_index = index+1 
-                        else: used_index = index-1 
-                        path.append(current_p[used_index])
-
-                        for c in range(dif-1):
-                            indexes.pop()
-                        dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif)
-
-                        if path[-1] in ends or path[-1] in begins:
-                            routes_path.append(path)
-            
-            if n_branches_route > 1:
-                avoid = avoid[:-(n_branches_route-1)]
-
-            if not (path[::-1] in routes_path or path in routes_path):
-                routes_path.append(path)
-            if avoid_temp == []: break
-    
-    for end in ends:
+        for begin in begins:
             avoid = []
-            while end != None:
-                direction = 'up'
+            while begin != None:
+                direction = 'down'
                 avoid_temp = []
                 n_branches_route = 0
                 # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
-                path = [current_p[end], current_p[end-1]]
+                path = [current_p[begin], current_p[begin+1]]
                 k = 1
-                indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 1 and index != end-1 and not index in avoid and not current_p[index-1] in path]
+                indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 0 and index != begin+1 and not index in avoid and not current_p[index+1] in path]
                 dif = len(indexes)
                 if indexes:
                     for index in indexes:
@@ -194,20 +170,58 @@ for current_p in list_all_pathways:
                             for c in range(dif-1):
                                 indexes.pop()
                             dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif)
-                                
+
+                            if path[-1] in ends or path[-1] in begins:
+                                routes_path.append(path)
+                
                 if n_branches_route > 1:
                     avoid = avoid[:-(n_branches_route-1)]
 
                 if not (path[::-1] in routes_path or path in routes_path):
                     routes_path.append(path)
                 if avoid_temp == []: break
+        
+        for end in ends:
+                avoid = []
+                while end != None:
+                    direction = 'up'
+                    avoid_temp = []
+                    n_branches_route = 0
+                    # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
+                    path = [current_p[end], current_p[end-1]]
+                    k = 1
+                    indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 1 and index != end-1 and not index in avoid and not current_p[index-1] in path]
+                    dif = len(indexes)
+                    if indexes:
+                        for index in indexes:
+                            k += 1
+                            if dif == 1:
+                                if direction == 'down': used_index = index+1
+                                else: used_index = index-1
+                                path.append(current_p[used_index])
+                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif)
+
+                            elif dif > 1:
+                                n_branches_route += 1
+                                avoid.insert(0, index)
+                                avoid_temp.append(index)
+
+                                if direction == 'down': used_index = index+1 
+                                else: used_index = index-1 
+                                path.append(current_p[used_index])
+
+                                for c in range(dif-1):
+                                    indexes.pop()
+                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif)
+                                    
+                    if n_branches_route > 1:
+                        avoid = avoid[:-(n_branches_route-1)]
+
+                    if not (path[::-1] in routes_path or path in routes_path):
+                        routes_path.append(path)
+                    if avoid_temp == []: break
 
 all_paths_all_routes.append(routes_path)
-
-print(f'len {len(all_paths_all_routes[0])}')
-
-for i in all_paths_all_routes:
-    for j in i: print(j); print('\n')
 
 '''def definitiveDecision(query, contrast):
     for rxn_q, rxn_c in zip(query, contrast[::-1]):
@@ -233,9 +247,9 @@ for i, path_routes in enumerate(all_paths_all_routes):
         deletions.append(j)
     print(len(path_routes))
  
-
+'''
 for i in all_paths_all_routes:
     print(len(i))
     for j in i:
         print(j)
-        print('\n')'''
+        print('\n')
