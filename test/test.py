@@ -131,34 +131,55 @@ def getBranches(current_p, begins, ends):
             branches.extend(post)
     return branches
 
-def getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends):
-    def getIndexesDown(current_p, path, k, used_index, avoid, indexes):
+def isSublist(sublist, routes, routes_end_empty, on_ends):
+    len_sublist = len(sublist)
+    if len(routes) < 2 or (routes_end_empty and on_ends): return True
+
+    for rout in routes:
+        for i in range(len(rout) - len_sublist + 1):
+            if rout[i:i + len_sublist] == sublist or rout[i:i + len_sublist][::-1] == sublist:
+                return True
+
+    return False
+
+def getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends, routes_path, routes_end_empty = 1, on_ends = 0):
+    is_sublist =isSublist(path, routes_path, routes_end_empty, on_ends)
+    def getIndexesDown():
         prev_len = len(indexes)
         for index, item  in enumerate(current_p):
-            if item == path[k] and index != used_index and index%2 == 0 and not index in avoid and not current_p[index+1] in path:
-                indexes.append(index)
+            if is_sublist:
+                if item == path[k] and index != used_index and index%2 == 0 and not index in avoid and not current_p[index+1] in path:
+                    indexes.append(index)
+            else:
+                if item == path[k] and index != used_index and index%2 == 0 and not current_p[index+1] in path:
+                    indexes.append(index)
         dif = len(indexes) - prev_len
         return(dif)
 
-    def getIndexesUp(current_p, path, k, used_index, avoid, indexes):
+    def getIndexesUp():
         prev_len = len(indexes)
         for index, item  in enumerate(current_p):
-            if item == path[k] and index != used_index and index%2 == 1 and not index in avoid and not current_p[index-1] in path:
-                indexes.append(index)
+            if is_sublist:
+                if item == path[k] and index != used_index and index%2 == 1 and not index in avoid and not current_p[index-1] in path:
+                    indexes.append(index)
+            else:
+                if item == path[k] and index != used_index and index%2 == 1 and not current_p[index-1] in path:
+                    indexes.append(index)
         dif = len(indexes) - prev_len
         return(dif)
 
     if direction == 'down':
-        dif = getIndexesDown(current_p, path, k, used_index, avoid, indexes)
+        dif = getIndexesDown()
         if dif == 0 and not path[-1] in [current_p[i] for i in ends] and not path[-1] in [current_p[j] for j in begins]:
             direction = 'up'
-            dif = getIndexesUp(current_p, path, k, used_index, avoid, indexes)
+            dif = getIndexesUp()
     else:
-        dif = getIndexesUp(current_p, path, k, used_index, avoid, indexes)
+        dif = getIndexesUp()
         if dif == 0 and not path[-1] in [current_p[i] for i in ends] and not path[-1] in [current_p[j] for j in begins]:
             direction = 'down'
-            dif = getIndexesDown(current_p, path, k, used_index, avoid, indexes) 
-    return(dif, direction)
+            dif = getIndexesDown() 
+
+    return dif, direction
 
 list_all_pathways, pathways_names = getListPathways()
 
@@ -187,6 +208,8 @@ def getRoutes(current_p):
     else: 
         # obtener inicios y finales
         begins, ends = getBeginsEnds(current_p)
+        if begins == [] and ends == []:
+            begins = [0]
         # obtener las rxns donde hay ramificaciones
         branches = getBranches(current_p, begins, ends)
         # agregar a la via los pares de rxns donde hay ramificaciones duplicadas e invertidas
@@ -200,6 +223,7 @@ def getRoutes(current_p):
                 direction = 'down'
                 avoid_temp = []
                 n_branches_route = 0
+                already_branched = 0
                 # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
                 path = [current_p[begin], current_p[begin+1]]
                 k = 1
@@ -212,7 +236,7 @@ def getRoutes(current_p):
                             if direction == 'down': used_index = index+1
                             else: used_index = index-1
                             path.append(current_p[used_index])
-                            dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
+                            dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends, routes_path)
 
                         elif dif > 1:
                             n_branches_route += 1
@@ -226,7 +250,7 @@ def getRoutes(current_p):
 
                             for c in range(dif-1):
                                 indexes.pop()
-                            dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
+                            dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends, routes_path)
 
                             if path[-1] in ends or path[-1] in begins:
                                 routes_path.append(path)
@@ -235,21 +259,18 @@ def getRoutes(current_p):
                     #avoid = avoid[:-(n_branches_route-1)]
 
                 if n_branches_route > 1:
-                    #print(n_branches_route)
-                    #print(f'avoid before before {avoid}')
                     if entered:
                         avoid.extend(avoid[:counter-1])
-                    #print(f'avoid before {avoid}')
                     avoid = avoid[-counter:]
-                    memory_avoid = avoid
                     entered = 1
                     counter += 1
-                    #print(f'avoid after {memory_avoid}')
 
                 if not (path[::-1] in routes_path or path in routes_path):
                     routes_path.append(path)
                 if avoid_temp == []: break
-        
+
+        routes_end_empty = 1
+        on_ends = 1
         for end in ends:
                 avoid = []
                 entered = 0
@@ -258,6 +279,7 @@ def getRoutes(current_p):
                     direction = 'up'
                     avoid_temp = []
                     n_branches_route = 0
+                    already_branched = 0
                     # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
                     path = [current_p[end], current_p[end-1]]
                     k = 1
@@ -270,7 +292,7 @@ def getRoutes(current_p):
                                 if direction == 'down': used_index = index+1
                                 else: used_index = index-1
                                 path.append(current_p[used_index])
-                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
+                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends, routes_path, routes_end_empty, on_ends)
 
                             elif dif > 1:
                                 n_branches_route += 1
@@ -284,25 +306,21 @@ def getRoutes(current_p):
 
                                 for c in range(dif-1):
                                     indexes.pop()
-                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
+                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends, routes_path, routes_end_empty, on_ends)
                                     
                     #if n_branches_route > 1:
                         #avoid = avoid[:-(n_branches_route-1)]
 
                     if n_branches_route > 1:
-                        #print(n_branches_route)
-                        #print(f'avoid before before {avoid}')
                         if entered:
                             avoid.extend(avoid[:counter-1])
-                            #print(f'avoid before {avoid}')
                         avoid = avoid[-counter:]
-                        memory_avoid = avoid
                         entered = 1
                         counter += 1
-                        #print(f'avoid after {memory_avoid}')
 
                     if not (path[::-1] in routes_path or path in routes_path):
                         routes_path.append(path)
+                        routes_end_empty = 0
                     if avoid_temp == []: break
 
     return routes_path
