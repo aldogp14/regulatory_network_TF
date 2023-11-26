@@ -164,66 +164,45 @@ list_all_pathways, pathways_names = getListPathways()
 
 def getRoutes(current_p):
     routes_path = []
-    # obtener inicios y finales
-    begins, ends = getBeginsEnds(current_p)
-    # obtener las rxns donde hay ramificaciones
-    branches, branch_rxns = getBranches(current_p, begins, ends)
-    # agregar a la via los pares de rxns donde hay ramificaciones duplicadas e invertidas
-    current_p.extend(branches)
+    discriminator = 0
+    if max(pd.Series(current_p).value_counts()) == 2 and min(pd.Series(current_p).value_counts()) == 2:
+        discriminator = 1
+        for rxn in list(set(current_p)):
+            disc = [index%2 for index,item in enumerate(current_p) if item == rxn]
+            if sum(disc)!=1 or len(disc)!=2: 
+                discriminator = 0
+    if discriminator:
+        path = [current_p[0], current_p[1]]
+        k = 1
+        indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 0 and index != 1]
+        for i in indexes:
+            # ver que nuestro indice no sea el ultimo
+            if i+1 < len(current_p):
+                path.append(current_p[i+1])
+                # guardar el indice que se acaba de usar para despues no tomarlo en cuenta
+                used_index = i+1
+                k+=1
+                # guardar los indices que corresponden a la siguiente reaccion. Estos tienen que ser pares porque sino serian sucesoras y no predecesoras
+                indexes.extend(index for index, item in enumerate(current_p) if path[k] == item and index != used_index and index%2==0 and item != path[0])
+        routes_path.append(path)
+    else: 
+        # obtener inicios y finales
+        begins, ends = getBeginsEnds(current_p)
+        # obtener las rxns donde hay ramificaciones
+        branches = getBranches(current_p, begins, ends)
+        # agregar a la via los pares de rxns donde hay ramificaciones duplicadas e invertidas
+        current_p.extend(branches)
 
-    for begin in begins:
-        avoid = []
-        while begin != None:
-            direction = 'down'
-            avoid_temp = []
-            n_branches_route = 0
-            # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
-            path = [current_p[begin], current_p[begin+1]]
-            k = 1
-            indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 0 and index != begin+1 and not index in avoid and not current_p[index+1] in path]
-            dif = len(indexes)
-            if indexes:
-                for index in indexes:
-                    k += 1
-                    if dif == 1:
-                        if direction == 'down': used_index = index+1
-                        else: used_index = index-1
-                        path.append(current_p[used_index])
-                        dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
-
-                    elif dif > 1:
-                        n_branches_route += 1
-                        avoid.insert(0, index)
-                        avoid_temp.append(index)
-
-                        if direction == 'down': used_index = index+1 
-                        else: used_index = index-1 
-                        path.append(current_p[used_index])
-
-                        for c in range(dif-1):
-                            indexes.pop()
-                        dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
-
-                        if path[-1] in ends or path[-1] in begins:
-                            routes_path.append(path)
-            
-            if n_branches_route > 1:
-                avoid = avoid[:-(n_branches_route-1)]
-
-            if not (path[::-1] in routes_path or path in routes_path):
-                routes_path.append(path)
-            if avoid_temp == []: break
-    
-    for end in ends:
+        for begin in begins:
             avoid = []
-            while end != None:
-                direction = 'up'
+            while begin != None:
+                direction = 'down'
                 avoid_temp = []
                 n_branches_route = 0
                 # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
-                path = [current_p[end], current_p[end-1]]
+                path = [current_p[begin], current_p[begin+1]]
                 k = 1
-                indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 1 and index != end-1 and not index in avoid and not current_p[index-1] in path]
+                indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 0 and index != begin+1 and not index in avoid and not current_p[index+1] in path]
                 dif = len(indexes)
                 if indexes:
                     for index in indexes:
@@ -246,13 +225,56 @@ def getRoutes(current_p):
                             for c in range(dif-1):
                                 indexes.pop()
                             dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
-                                
+
+                            if path[-1] in ends or path[-1] in begins:
+                                routes_path.append(path)
+                
                 if n_branches_route > 1:
                     avoid = avoid[:-(n_branches_route-1)]
 
                 if not (path[::-1] in routes_path or path in routes_path):
                     routes_path.append(path)
                 if avoid_temp == []: break
+        
+        for end in ends:
+                avoid = []
+                while end != None:
+                    direction = 'up'
+                    avoid_temp = []
+                    n_branches_route = 0
+                    # guardar los primeros dos reacciones/items que esten en current_p. Al menos se puede estar seguro que estan unidas
+                    path = [current_p[end], current_p[end-1]]
+                    k = 1
+                    indexes = [index for index, item in enumerate(current_p) if path[k] == item and index%2 == 1 and index != end-1 and not index in avoid and not current_p[index-1] in path]
+                    dif = len(indexes)
+                    if indexes:
+                        for index in indexes:
+                            k += 1
+                            if dif == 1:
+                                if direction == 'down': used_index = index+1
+                                else: used_index = index-1
+                                path.append(current_p[used_index])
+                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
+
+                            elif dif > 1:
+                                n_branches_route += 1
+                                avoid.insert(0, index)
+                                avoid_temp.append(index)
+
+                                if direction == 'down': used_index = index+1 
+                                else: used_index = index-1 
+                                path.append(current_p[used_index])
+
+                                for c in range(dif-1):
+                                    indexes.pop()
+                                dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends)
+                                    
+                    if n_branches_route > 1:
+                        avoid = avoid[:-(n_branches_route-1)]
+
+                    if not (path[::-1] in routes_path or path in routes_path):
+                        routes_path.append(path)
+                    if avoid_temp == []: break
 
     return routes_path
 
@@ -325,7 +347,6 @@ def doShit(rout, pathway_name):
     TFs = getInterestTFs(df_TF_gene, genes)
     # hacer un DataFrame con los bnumbers, el nombre de los genes y los FTs que los regulan
     bN_gene_TF = pd.DataFrame({'bNumber': bns, 'gene': genes, 'TF': TFs})
-    #print(bN_gene_TF)
         
     fractions = []
     type_subpath = []
@@ -397,21 +418,28 @@ def doShit(rout, pathway_name):
                 pathways.append(pathway_name)
         # crear el dataframe de salida
         output = pd.DataFrame({'pathway': pathways, 'length': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns, 'other TFs': other_TFs, 'subpath': subroutes})   
-        
         return output
+
     
     final_df = getSubpathways()
 
     # dar formato a las variables a imprimir para el output final
-    final_ouput_1 = final_df.to_string(index=False) # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
-    final_ouput_2_1 =final_df.iloc[0,2] # tomar el FT mas representado de la via entera
-    final_ouput_2_2 = round(final_df.iloc[0,3]*100, 2) # redondear a dos decimales y pasarlo a porcentaje la fraccion del FT mas represenatado
+    final_ouput_1 = final_df.to_string(index=False, header=0).replace(' ', '\t') # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
+    ##final_ouput_2_1 =final_df.iloc[0,2] # tomar el FT mas representado de la via entera
+    ##final_ouput_2_2 = round(final_df.iloc[0,3]*100, 2) # redondear a dos decimales y pasarlo a porcentaje la fraccion del FT mas represenatado
 
-    # imprimir el output del script
-    print(f'Lista de subvias con el factor de transcripcion que mas la regula y la fraccion de la (sub)via regulada por este mismo:\n{final_ouput_1}')
-    print(F'\nEl factor de transcripcion mas representado de la via es \'{final_ouput_2_1}\' con un {final_ouput_2_2}%') 
+    # guardar el ouput en el archivo de salida
+    with open('output.txt', 'a') as out_file:
+        out_file.write(f'{final_ouput_1}\n')
+    ##print(f'Lista de subvias con el factor de transcripcion que mas la regula y la fraccion de la (sub)via regulada por este mismo:\n{final_ouput_1}')
+    ##print(F'\nEl factor de transcripcion mas representado de la via es \'{final_ouput_2_1}\' con un {final_ouput_2_2}%') 
+
+with open('output.txt', 'w') as out_file:
+    out_file.write('# Output file from one.py\n')
+    out_file.write('# pathway\tlength\tTF\tfraction\tocurrences\tunknowns\tother_TFs\tsubroute\n')
 
 for current_p, pathway_name in zip(list_all_pathways, pathways_names):
     routes_path = getRoutes(current_p)
     for rout in routes_path:
+        print(f'rout: {rout}')
         doShit(rout, pathway_name)
