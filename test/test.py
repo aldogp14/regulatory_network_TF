@@ -42,7 +42,7 @@ def subsPatternToDF(df, subs, c_receptor):
     df.iloc[:, c_receptor] = subs
     return(df)
 
-lines_pathway_rxns = readTxts('test/test.txt')
+lines_pathway_rxns = readTxts('data/all_pathways_rxns.txt')
 df_pathway_rxns = makeDF(lines_pathway_rxns, 0)
 
 # hacer el dataframe para el archivo reaction_to_genes.txt
@@ -213,6 +213,7 @@ def getRoutes(current_p):
         # obtener las rxns donde hay ramificaciones
         branches = getBranches(current_p, begins, ends)
         # agregar a la via los pares de rxns donde hay ramificaciones duplicadas e invertidas
+        orig_current_p = list(current_p)
         current_p.extend(branches)
 
         for begin in begins:
@@ -252,12 +253,6 @@ def getRoutes(current_p):
                                 indexes.pop()
                             dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends, routes_path)
 
-                            if path[-1] in ends or path[-1] in begins:
-                                routes_path.append(path)
-                
-                #if n_branches_route > 1:
-                    #avoid = avoid[:-(n_branches_route-1)]
-
                 if n_branches_route > 1:
                     if entered:
                         avoid.extend(avoid[:counter-1])
@@ -265,8 +260,24 @@ def getRoutes(current_p):
                     entered = 1
                     counter += 1
 
+                #if not (path[::-1] in routes_path or path in routes_path):
+                #    routes_path.append(path)
+
                 if not (path[::-1] in routes_path or path in routes_path):
-                    routes_path.append(path)
+                    if direction == 'down':
+                        cycle_indexes = [current_p[index+1] for index, item in enumerate(current_p) if item == path[-1] and index%2 == 0 and current_p[index+1] in path and not current_p[index+1] == path[-2]]
+                    elif direction == 'up':
+                        cycle_indexes = [current_p[index-1] for index, item in enumerate(current_p) if item == path[-1] and index%2 == 1 and current_p[index-1] in path and not current_p[index-1] == path[-2]]
+                    
+                    cycle_indexes = list(set(cycle_indexes))
+                    
+                    if cycle_indexes:
+                        for cycle_index in cycle_indexes:
+                            routes_path.append(list(path))
+                            routes_path[-1].append(cycle_index)
+                    else: 
+                        routes_path.append(path)
+
                 if avoid_temp == []: break
 
         routes_end_empty = 1
@@ -307,9 +318,6 @@ def getRoutes(current_p):
                                 for c in range(dif-1):
                                     indexes.pop()
                                 dif, direction = getIndexes(current_p, path, k, used_index, avoid, indexes, direction, dif, begins, ends, routes_path, routes_end_empty, on_ends)
-                                    
-                    #if n_branches_route > 1:
-                        #avoid = avoid[:-(n_branches_route-1)]
 
                     if n_branches_route > 1:
                         if entered:
@@ -318,9 +326,26 @@ def getRoutes(current_p):
                         entered = 1
                         counter += 1
 
+                    ## sino si quisiera tomar en cuenta los ciclos al final
+                    #if not (path[::-1] in routes_path or path in routes_path):
+                    #    routes_path.append(path)
+                        
                     if not (path[::-1] in routes_path or path in routes_path):
-                        routes_path.append(path)
                         routes_end_empty = 0
+                        if direction == 'down':
+                            cycle_indexes = [current_p[index+1] for index, item in enumerate(current_p) if item == path[-1] and index%2 == 0 and current_p[index+1] in path and not current_p[index+1] == path[-2]]
+                        elif direction == 'up':
+                            cycle_indexes = [current_p[index-1] for index, item in enumerate(current_p) if item == path[-1] and index%2 == 1 and current_p[index-1] in path and not current_p[index-1] == path[-2]]
+                        
+                        cycle_indexes = list(set(cycle_indexes))
+                        
+                        if cycle_indexes:
+                            for cycle_index in cycle_indexes:
+                                routes_path.append(list(path))
+                                routes_path[-1].append(cycle_index)
+                        else: 
+                            routes_path.append(path)
+
                     if avoid_temp == []: break
 
     return routes_path
@@ -482,8 +507,9 @@ with open('output.txt', 'w') as out_file:
     out_file.write('# pathway\tlength\tTF\tfraction\tocurrences\tunknowns\tother_TFs\tsubroute\n')
   
 for current_p, pathway_name in zip(list_all_pathways, pathways_names):
+    original_current_p = current_p
     routes_path = getRoutes(current_p)
-    print(len(routes_path))
     for rout in routes_path:
-        print(f'{rout}\n')
         doShit(rout, pathway_name)
+
+print('Se escribio un archivo el cual contiene una tabla tabular con el output de tu programa\nLo encontraras con el nombre de \'output.txt\'')
