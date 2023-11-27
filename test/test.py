@@ -485,9 +485,9 @@ def doShit(rout, pathway_name):
             for initial_pos in range(0, when_stop):
                 subpath = TFs[initial_pos:final_pos]
                 callerFraction(subpath, len_sub)
-                final_pos+=1
                 subroutes.append(rout[initial_pos:final_pos])
                 pathways.append(pathway_name)
+                final_pos+=1
         # crear el dataframe de salida
         output = pd.DataFrame({'pathway': pathways, 'length': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns, 'other TFs': other_TFs, 'subpath': subroutes})   
         
@@ -496,14 +496,14 @@ def doShit(rout, pathway_name):
     final_df = getSubpathways()
 
     # dar formato a las variables a imprimir para el output final
-    final_ouput_1 = final_df.to_csv(index=False, header=0, sep='\t').replace('\n', '') # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
+    final_ouput_1 = final_df.to_csv(index=False, header=0, sep='\t', line_terminator='\n') # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
 
     # guardar el ouput en el archivo de salida
     with open('output.txt', 'a') as out_file:
         out_file.write(f'{final_ouput_1}')
 
 with open('output.txt', 'w') as out_file:
-    out_file.write('# Output file from one.py\n')
+    out_file.write('# Output file from test.py\n')
     out_file.write('# pathway\tlength\tTF\tfraction\tocurrences\tunknowns\tother_TFs\tsubroute\n')
   
 for current_p, pathway_name in zip(list_all_pathways, pathways_names):
