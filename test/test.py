@@ -4,6 +4,25 @@ from io import StringIO
 import re
 from operator import *
 from itertools import chain
+import argparse
+
+# crear parser
+parser = argparse.ArgumentParser(description="script para obtener el o los FTs que mas regulan una subvia")
+# añadir argumentos
+parser.add_argument("-i", "--input", help="File with the list of pathways and its reactions", required=True)
+parser.add_argument("-r", "--rxns", help="File with the rxn and gene associated", required=True)
+parser.add_argument("-g", "--genes", help="RegulonDB file with gene identifiers", required=True)
+parser.add_argument("-t", "--tfs", help="RegulonDB file with table of genes and TFs", required=True)
+parser.add_argument("-o", "--output", help="Path for the output file", required=False, default='output.txt')
+# ejecutar el parser
+args = parser.parse_args()
+# guardar en variables
+input = args.input
+input_rxns = args.rxns
+input_geneIDs = args.genes
+input_tfs = args.tfs
+output_path = args.output
+
 
 # funcion para leer arhivos de texto tabulares con texto de encabezado
 def readTxts(location):
@@ -42,21 +61,21 @@ def subsPatternToDF(df, subs, c_receptor):
     df.iloc[:, c_receptor] = subs
     return(df)
 
-lines_pathway_rxns = readTxts('data/all_pathways_rxns.txt')
+lines_pathway_rxns = readTxts(input)
 df_pathway_rxns = makeDF(lines_pathway_rxns, 0)
 
 # hacer el dataframe para el archivo reaction_to_genes.txt
-lines_reaction_bn = readTxts('data/reaction_to_genes.txt')
+lines_reaction_bn = readTxts(input_rxns)
 df_reaction_bn = makeDF(lines_reaction_bn, 0)
 
 # hacer el dataframe para el archivo RegulonDB_geneidentifiers.txt
-lines_gene_IDs = readTxts('data/RegulonDB_geneidentifiers.txt')
+lines_gene_IDs = readTxts(input_geneIDs)
 b_numbers = getPatterns(lines_gene_IDs, r'b\d{4}')
 df_gene_IDs = makeDF(lines_gene_IDs)
 df_gene_IDs = subsPatternToDF(df_gene_IDs, b_numbers, 5)
 
 # hacer el dataframe para el archivo RegulonDB_NetworkTFGene.txt
-lines_TF_gene = readTxts('data/RegulonDB_NetworkTFGene.txt')
+lines_TF_gene = readTxts(input_tfs)
 df_TF_gene = makeDF(lines_TF_gene, 0)
 
 def getListPathways():
@@ -442,18 +461,9 @@ def doShit(rout, pathway_name):
         else: 
             tf_most_ocurred.append(counts.index[case])
         occurrences.append(most_ocurrence)
-        # contar cuantos otros factores de transcripcion regulan la subvia pero no fueron los mas recurrentes
-        # si es 'unknown' el mas recurrente, entonces no hay otros factores
-        if tf_most_ocurred[-1] == 'unknown': other_TFs.append(0)
-        # si se apendeo un solo FT y no una lista de FTs entonces puede que si haya otros FTs
-        elif tf_most_ocurred[-1] == str: other_TFs.append(l - most_ocurrence - uk)
-        # si todos los factores de la subvia tambien son los mas recurrentes entonces no quedan mas TFs
-        elif all(item in current_path for item in tf_most_ocurred[-1]): other_TFs.append(0)
-        # si no se cumplio nada de lo anterior entonces tambien puede ser que queden algunos FTs
-        else: other_TFs.append(l - most_ocurrence - uk)
 
     # funcion que prepara todo lo que necesita getFraction para despues llamarla
-    def callerFraction(current_path, len_sub):
+    def callerFraction(current_path, len_sub, other_TFs_name):
         # tenemos una lista de lista, hay que 'aplanarla'. El metodo chain hace esto, despues hay que pasarlo a tipo de dato pd.Series
         current_path_flat = pd.Series(list(chain(*current_path)))
         # .value_counts() saca, de una lista, cuantas veces ocurre cada item unico
@@ -469,6 +479,11 @@ def doShit(rout, pathway_name):
         getFraction(len_current_path, counts, case, uk, current_path_flat)
         unknowns.append(uk)
         type_subpath.append(len_sub)
+        # contar y guardar el nombre de otros factores de transcripcion que intervienen en la subvia
+        other_TFs_name.append([item for item in current_path_flat if not item in tf_most_ocurred and item != 'unknown'])
+        other_TFs.append(len(other_TFs_name[-1]))
+        other_TFs_name[-1] = None if other_TFs_name[-1] == [] else other_TFs_name[-1]
+        
 
     # funcion que hace la particion de la via en subvias y pregunta si sus FTs son el mismo
     def getSubpathways():
@@ -477,6 +492,7 @@ def doShit(rout, pathway_name):
         len_path = len(TFs)
         subroutes = []
         pathways = []
+        other_TFs_name = []
         # en este primer for se van sacando los tamanos de subvia que puede haber. En este se recorren las sublongitudes
         for len_sub in range(len_path, 1, -1):
             when_stop = len_path-len_sub+1
@@ -484,12 +500,12 @@ def doShit(rout, pathway_name):
             # en este segundo for se van haciendo las subvias con el tamano acorde al primer for. En este se recorren las 'combinaciones' de cada sublongitud
             for initial_pos in range(0, when_stop):
                 subpath = TFs[initial_pos:final_pos]
-                callerFraction(subpath, len_sub)
+                callerFraction(subpath, len_sub, other_TFs_name)
                 subroutes.append(rout[initial_pos:final_pos])
                 pathways.append(pathway_name)
                 final_pos+=1
         # crear el dataframe de salida
-        output = pd.DataFrame({'pathway': pathways, 'length': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns, 'other TFs': other_TFs, 'subpath': subroutes})   
+        output = pd.DataFrame({'pathway': pathways, 'length': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns, 'other TFs': other_TFs, 'subpath': subroutes, 'other TFs names': other_TFs_name})   
         
         return output
     
@@ -499,10 +515,10 @@ def doShit(rout, pathway_name):
     final_ouput_1 = final_df.to_csv(index=False, header=0, sep='\t', line_terminator='\n') # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
 
     # guardar el ouput en el archivo de salida
-    with open('output.txt', 'a') as out_file:
+    with open(output_path, 'a') as out_file:
         out_file.write(f'{final_ouput_1}')
 
-with open('output.txt', 'w') as out_file:
+with open(output_path, 'w') as out_file:
     out_file.write('# Output file from test.py\n')
     out_file.write('# pathway\tlength\tTF\tfraction\tocurrences\tunknowns\tother_TFs\tsubroute\n')
   
@@ -512,4 +528,4 @@ for current_p, pathway_name in zip(list_all_pathways, pathways_names):
     for rout in routes_path:
         doShit(rout, pathway_name)
 
-print('Se escribio un archivo el cual contiene una tabla tabular con el output de tu programa\nLo encontraras con el nombre de \'output.txt\'')
+print(f'Se escribio un archivo el cual contiene una tabla tabular con el output de tu programa\nLo encontraras con el nombre de \'{output_path}\'')
