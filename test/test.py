@@ -5,6 +5,7 @@ import re
 from operator import *
 from itertools import chain
 import argparse
+from collections import OrderedDict
 
 # crear parser
 parser = argparse.ArgumentParser(description="script para obtener el o los FTs que mas regulan una subvia")
@@ -519,13 +520,23 @@ def doShit(rout, pathway_name):
         out_file.write(f'{final_ouput_1}')
 
 with open(output_path, 'w') as out_file:
-    out_file.write('# Output file from test.py\n')
-    out_file.write('# pathway\tlength\tTF\tfraction\tocurrences\tunknowns\tother_TFs\tsubroute\n')
+    out_file.write('# pathway\tlength\tTF\tfraction\tocurrences\tunknowns\tother_TFs\tsubrout\tother_TFs_id\n')
   
 for current_p, pathway_name in zip(list_all_pathways, pathways_names):
     original_current_p = current_p
     routes_path = getRoutes(current_p)
     for rout in routes_path:
         doShit(rout, pathway_name)
+
+# funcion que se queda con las lineas unicas del output y manda el archivo 'unico' a otro archivo, no sobreescribe
+def unique_lines(output_unique):
+    with open(output_path, 'r') as infile, open(output_unique, 'w') as outfile:
+        seen_lines = OrderedDict()
+        for line in infile:
+            if line not in seen_lines:
+                seen_lines[line] = True
+                outfile.write(line)
+
+unique_lines('output_unique.txt')
 
 print(f'Se escribio un archivo el cual contiene una tabla tabular con el output de tu programa\nLo encontraras con el nombre de \'{output_path}\'')
