@@ -6,6 +6,7 @@ from operator import *
 from itertools import chain
 import argparse
 from collections import OrderedDict
+import os
 
 # crear parser
 parser = argparse.ArgumentParser(description="script para obtener el o los FTs que mas regulan una subvia")
@@ -456,9 +457,13 @@ def doShit(rout, pathway_name):
         if counts.tolist().count(most_ocurrence) != 1:
             # evitar guardar el mismo factor dos veces
             temp = list(set([item for item in current_path if current_path.count(item) == most_ocurrence and item != 'unknown']))
+            # hay que ordenarlo para asegurar que siempre se guarda en el mismo orden
+            temp = sorted(temp, key=lambda x: x.upper())
             # si solo se encontro un FT hay que evitar guardarlo como lista
-            if len(temp) == 1: tf_most_ocurred.append(temp[0])
-            else: tf_most_ocurred.append(temp)
+            if len(temp) == 1: 
+                tf_most_ocurred.append(temp[0])
+            else: 
+                tf_most_ocurred.append(temp)
         else: 
             tf_most_ocurred.append(counts.index[case])
         occurrences.append(most_ocurrence)
@@ -481,7 +486,7 @@ def doShit(rout, pathway_name):
         unknowns.append(uk)
         type_subpath.append(len_sub)
         # contar y guardar el nombre de otros factores de transcripcion que intervienen en la subvia
-        other_TFs_name.append([item for item in current_path_flat if not item in tf_most_ocurred and item != 'unknown'])
+        other_TFs_name.append([item for item in current_path_flat if not item in tf_most_ocurred[-1] and item != 'unknown'])
         other_TFs.append(len(other_TFs_name[-1]))
         other_TFs_name[-1] = None if other_TFs_name[-1] == [] else other_TFs_name[-1]
         
@@ -507,7 +512,7 @@ def doShit(rout, pathway_name):
                 final_pos+=1
         # crear el dataframe de salida
         output = pd.DataFrame({'pathway': pathways, 'length': type_subpath, 'TF': tf_most_ocurred,  'fraction': fractions, 'occurrences': occurrences, 'unknowns': unknowns, 'other TFs': other_TFs, 'subpath': subroutes, 'other TFs names': other_TFs_name})   
-        
+
         return output
     
     final_df = getSubpathways()
@@ -516,12 +521,12 @@ def doShit(rout, pathway_name):
     final_ouput_1 = final_df.to_csv(index=False, header=0, sep='\t', line_terminator='\n') # pasar el df a string para quitar los indices de python (van del 0 a nfilas y no representa nada)
 
     # guardar el ouput en el archivo de salida
-    with open(output_path, 'a') as out_file:
+    with open('temp.txt', 'a') as out_file:
         out_file.write(f'{final_ouput_1}')
 
-with open(output_path, 'w') as out_file:
+with open('temp.txt', 'w') as out_file:
     out_file.write('# pathway\tlength\tTF\tfraction\tocurrences\tunknowns\tother_TFs\tsubrout\tother_TFs_id\n')
-  
+
 for current_p, pathway_name in zip(list_all_pathways, pathways_names):
     original_current_p = current_p
     routes_path = getRoutes(current_p)
@@ -530,13 +535,15 @@ for current_p, pathway_name in zip(list_all_pathways, pathways_names):
 
 # funcion que se queda con las lineas unicas del output y manda el archivo 'unico' a otro archivo, no sobreescribe
 def unique_lines(output_unique):
-    with open(output_path, 'r') as infile, open(output_unique, 'w') as outfile:
+    with open('temp.txt', 'r') as infile, open(output_unique, 'w') as outfile:
         seen_lines = OrderedDict()
         for line in infile:
             if line not in seen_lines:
                 seen_lines[line] = True
                 outfile.write(line)
 
-unique_lines('output_unique.txt')
+unique_lines(output_path)
 
 print(f'Se escribio un archivo el cual contiene una tabla tabular con el output de tu programa\nLo encontraras con el nombre de \'{output_path}\'')
+
+os.remove('temp.txt')
